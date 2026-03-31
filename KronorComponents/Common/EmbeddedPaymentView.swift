@@ -6,11 +6,14 @@
 //
 
 import SwiftUI
+import AuthenticationServices
 
 struct EmbeddedPaymentView<Content: View>: View {
     @ObservedObject private var embeddedPayViewModel: EmbeddedPaymentViewModel
     @ObservedObject private var webViewModel = WebViewModel()
     @State private var keepWaitingOpen = false
+    @State private var showAuthSession = false
+    @State private var authSessionIntentionallyClosed = false
     private var waitingView: Content
     
     init (viewModel: EmbeddedPaymentViewModel, waitingView: Content) {
@@ -37,24 +40,43 @@ struct EmbeddedPaymentView<Content: View>: View {
     private func innerBody() -> some View {
         switch embeddedPayViewModel.state {
         case .initializing, .creatingPaymentRequest, .waitingForPaymentRequest, .paymentRequestInitialized, .waitingForPayment:
-            self.waitingView
-                .transition(.slide)
-                .onReceive(embeddedPayViewModel.$embeddedSiteURL.combineLatest(webViewModel.$link)) { (embeddedSiteURL, link) in
-                        if let _ = embeddedSiteURL {
-                            keepWaitingOpen = (link != embeddedPayViewModel.returnURL)
-                        } else {
-                            keepWaitingOpen = false
-                        }
-                }
-                .sheet(isPresented: $keepWaitingOpen, onDismiss: dismissSheet) {
-                    if let url = self.embeddedPayViewModel.embeddedSiteURL {
-                        EmbeddedSiteView(
-                            webViewModel: self.webViewModel,
-                            url: url,
-                            onCancel: cancelNow
-                        )
+            if embeddedPayViewModel.prefersAuthenticationSession {
+                self.waitingView
+                    .transition(.slide)
+                    .onReceive(embeddedPayViewModel.$embeddedSiteURL) { embeddedSiteURL in
+                        showAuthSession = embeddedSiteURL != nil
                     }
-                }
+                    .fullScreenCover(isPresented: $showAuthSession, onDismiss: onAuthSessionDismissed) {
+                        if let url = self.embeddedPayViewModel.embeddedSiteURL,
+                           let scheme = embeddedPayViewModel.returnURL.scheme {
+                            AuthSessionViewRepresentable(
+                                url: url,
+                                callbackScheme: scheme,
+                                onComplete: dismissAuthSession,
+                                onCancel: cancelNow
+                            )
+                        }
+                    }
+            } else {
+                self.waitingView
+                    .transition(.slide)
+                    .onReceive(embeddedPayViewModel.$embeddedSiteURL.combineLatest(webViewModel.$link)) { (embeddedSiteURL, link) in
+                            if let _ = embeddedSiteURL {
+                                keepWaitingOpen = (link != embeddedPayViewModel.returnURL)
+                            } else {
+                                keepWaitingOpen = false
+                            }
+                    }
+                    .sheet(isPresented: $keepWaitingOpen, onDismiss: dismissSheet) {
+                        if let url = self.embeddedPayViewModel.embeddedSiteURL {
+                            EmbeddedSiteView(
+                                webViewModel: self.webViewModel,
+                                url: url,
+                                onCancel: cancelNow
+                            )
+                        }
+                    }
+            }
         case .paymentRejected:
             PaymentRejectedView(viewModel: self.embeddedPayViewModel)
         case .paymentCompleted:
@@ -94,6 +116,17 @@ struct EmbeddedPaymentView<Content: View>: View {
         }
     }
     
+    private func dismissAuthSession() {
+        authSessionIntentionallyClosed = true
+        showAuthSession = false
+    }
+
+    private func onAuthSessionDismissed() {
+        defer { authSessionIntentionallyClosed = false }
+        guard !authSessionIntentionallyClosed else { return }
+        dismissSheet()
+    }
+
     private func dismissSheet() {
         Task {
             if self.embeddedPayViewModel.state != .paymentCompleted && self.embeddedPayViewModel.state != .paymentRejected {

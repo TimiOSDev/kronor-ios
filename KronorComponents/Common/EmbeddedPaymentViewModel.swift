@@ -64,6 +64,7 @@ class EmbeddedPaymentViewModel: ObservableObject {
     internal let sessionURL: URL
     internal let returnURL: URL
     internal let intermediateRedirectURL: URL
+    internal let prefersAuthenticationSession: Bool
     
     @Published var state: EmbeddedPaymentStatechart.State
     @Published var embeddedSiteURL: URL?
@@ -95,7 +96,8 @@ class EmbeddedPaymentViewModel: ObservableObject {
 
         self.sessionURL = components.url!
         self.returnURL = configuration.returnURL
-        
+        self.prefersAuthenticationSession = configuration.prefersAuthenticationSession
+
         components.path = "/" + paymentMethod.getName().lowercased() + "-redirect"
         self.intermediateRedirectURL = components.url!
     }
