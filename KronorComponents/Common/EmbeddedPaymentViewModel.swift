@@ -18,6 +18,7 @@ enum SupportedEmbeddedMethod {
     case payPal
     case bankTransfer
     case p24
+    case pointsPay
     case fallback(name: String)
     
     func getName() -> String {
@@ -34,6 +35,8 @@ enum SupportedEmbeddedMethod {
             return "bankTransfer"
         case .p24:
             return "p24"
+        case .pointsPay:
+            return "pointspay"
         case .fallback(let name):
             return name
         }
@@ -41,7 +44,7 @@ enum SupportedEmbeddedMethod {
     
     func isFallback() -> Bool {
         switch self {
-        case .bankTransfer, .p24, .fallback: return true
+        case .bankTransfer, .p24, .pointsPay, .fallback: return true
         default: return false
         }
     }
@@ -74,7 +77,8 @@ class EmbeddedPaymentViewModel: ObservableObject {
         stateMachine: EmbeddedPaymentStatechart.EmbeddedPaymentStateMachine,
         networking: some EmbeddedPaymentNetworking,
         paymentMethod: SupportedEmbeddedMethod,
-        paymentResultHandler: @escaping PaymentResultHandler
+        paymentResultHandler: @escaping PaymentResultHandler,
+        prefersAuthenticationSession: Bool = false
     ) {
         self.stateMachine = stateMachine
         self.networking = networking
@@ -96,7 +100,7 @@ class EmbeddedPaymentViewModel: ObservableObject {
 
         self.sessionURL = components.url!
         self.returnURL = configuration.returnURL
-        self.prefersAuthenticationSession = configuration.prefersAuthenticationSession
+        self.prefersAuthenticationSession = prefersAuthenticationSession
 
         components.path = "/" + paymentMethod.getName().lowercased() + "-redirect"
         self.intermediateRedirectURL = components.url!
@@ -158,7 +162,7 @@ class EmbeddedPaymentViewModel: ObservableObject {
                         returnURL: self.intermediateRedirectURL,
                         merchantReturnURL: self.returnURL
                     )
-                case .bankTransfer, .p24, .fallback:
+                case .bankTransfer, .p24, .pointsPay, .fallback:
                     // cannot create the payment request as we don't know how.
                     // it will be created by the web version of the payment gateway
                     fatalError("impossible")
