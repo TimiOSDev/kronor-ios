@@ -13,6 +13,7 @@ struct EmbeddedPaymentView<Content: View>: View {
     @ObservedObject private var webViewModel = WebViewModel()
     @State private var keepWaitingOpen = false
     @State private var showAuthSession = false
+    @State private var authSessionIntentionallyClosed = false
     private var waitingView: Content
     
     init (viewModel: EmbeddedPaymentViewModel, waitingView: Content) {
@@ -45,11 +46,12 @@ struct EmbeddedPaymentView<Content: View>: View {
                     .onReceive(embeddedPayViewModel.$embeddedSiteURL) { embeddedSiteURL in
                         showAuthSession = embeddedSiteURL != nil
                     }
-                    .fullScreenCover(isPresented: $showAuthSession) {
-                        if let url = self.embeddedPayViewModel.embeddedSiteURL {
+                    .fullScreenCover(isPresented: $showAuthSession, onDismiss: onAuthSessionDismissed) {
+                        if let url = self.embeddedPayViewModel.embeddedSiteURL,
+                           let scheme = embeddedPayViewModel.returnURL.scheme {
                             AuthSessionViewRepresentable(
                                 url: url,
-                                callbackScheme: embeddedPayViewModel.returnURL.scheme ?? "",
+                                callbackScheme: scheme,
                                 onComplete: dismissAuthSession,
                                 onCancel: cancelNow
                             )
@@ -115,7 +117,14 @@ struct EmbeddedPaymentView<Content: View>: View {
     }
     
     private func dismissAuthSession() {
+        authSessionIntentionallyClosed = true
         showAuthSession = false
+    }
+
+    private func onAuthSessionDismissed() {
+        defer { authSessionIntentionallyClosed = false }
+        guard !authSessionIntentionallyClosed else { return }
+        dismissSheet()
     }
 
     private func dismissSheet() {

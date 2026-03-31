@@ -97,10 +97,14 @@ final class AuthSessionViewController: UIViewController, ASWebAuthenticationPres
         session.prefersEphemeralWebBrowserSession = false
         session.presentationContextProvider = self
         authSession = session
-        session.start()
+
+        let didStart = session.start()
+        if !didStart {
+            onCancel()
+        }
     }
 
     func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
-        view.window ?? ASPresentationAnchor()
+        view.window!
     }
 }
