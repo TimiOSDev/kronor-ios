@@ -20,11 +20,6 @@ public struct ComponentConfiguration {
     public let device: Kronor.Device?
     /// Whether WebSockets are used for payment status updates.
     public let isWebSocketsEnabled: Bool
-    /// Whether to use `ASWebAuthenticationSession` instead of an embedded `WKWebView`
-    /// for the payment flow. When `true`, the payment gateway page opens in a Safari-powered
-    /// sheet that shares Safari's cookies and user-agent, bypassing Cloudflare challenges
-    /// that block `WKWebView`. Defaults to `false`.
-    public let prefersAuthenticationSession: Bool
 
     /// Creates a new component configuration.
     /// - Parameters:
@@ -33,20 +28,17 @@ public struct ComponentConfiguration {
     ///   - returnURL: The URL to redirect back to after the payment flow.
     ///   - device: Optional device information. Defaults to `nil`.
     ///   - isWebSocketsEnabled: Whether WebSockets are used for payment status updates. Defaults to `true`.
-    ///   - prefersAuthenticationSession: Whether to use `ASWebAuthenticationSession` instead of `WKWebView`. Defaults to `false`.
     public init(
         env: Kronor.Environment,
         sessionToken: String,
         returnURL: URL,
         device: Kronor.Device? = nil,
-        isWebSocketsEnabled: Bool = true,
-        prefersAuthenticationSession: Bool = false
+        isWebSocketsEnabled: Bool = true
     ) {
         self.env = env
         self.sessionToken = sessionToken
         self.returnURL = returnURL
         self.device = device
         self.isWebSocketsEnabled = isWebSocketsEnabled
-        self.prefersAuthenticationSession = prefersAuthenticationSession
     }
 }
