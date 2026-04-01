@@ -102,6 +102,8 @@ extension KronorPaymentNetworking {
 
         return try await withCheckedThrowingContinuation { continuation in
             connection.stateUpdateHandler = { state in
+                guard connection.stateUpdateHandler != nil else { return }
+
                 switch state {
                 case .ready:
                     connection.stateUpdateHandler = nil
