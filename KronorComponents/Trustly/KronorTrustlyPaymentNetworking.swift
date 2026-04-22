@@ -9,6 +9,7 @@ final class KronorTrustlyPaymentNetworking: KronorPaymentNetworking, TrustlyPaym
         let input = KronorApi.BankTransferPaymentInput(
             flow: "mcom",
             idempotencyKey: UUID().uuidString,
+            merchantReturnUrl: .some(returnURL.absoluteString),
             returnUrl: returnURL.absoluteString
         )
 
