@@ -10,7 +10,7 @@ import Kronor
 
 /// A payment component that handles bank transfer payments.
 public struct BankTransferComponent: View {
-    let viewModel: EmbeddedPaymentViewModel
+    let viewModel: TrustlyPaymentViewModel
 
     /// Creates a new bank transfer payment component.
     /// - Parameters:
@@ -21,29 +21,23 @@ public struct BankTransferComponent: View {
         paymentResultHandler: @escaping PaymentResultHandler
     ) {
         let machine = EmbeddedPaymentStatechart.makeStateMachine()
-        let networking = KronorEmbeddedPaymentNetworking(configuration: configuration)
-        let viewModel = EmbeddedPaymentViewModel(
-            configuration: configuration,
+        let networking = KronorTrustlyPaymentNetworking(configuration: configuration)
+        let viewModel = TrustlyPaymentViewModel(
             stateMachine: machine,
             networking: networking,
-            paymentMethod: .bankTransfer,
+            returnURL: configuration.returnURL,
             paymentResultHandler: paymentResultHandler
         )
-        
+
         self.viewModel = viewModel
-        
+
         Task {
-            await viewModel.initialize()
+            await viewModel.transition(.initialize)
         }
     }
 
     public var body: some View {
-        WrapperView(header: FallbackHeaderView()) {
-            EmbeddedPaymentView(
-                viewModel: self.viewModel,
-                waitingView: FallbackWaitingView()
-            )
-        }
+        TrustlyPaymentView(viewModel: self.viewModel)
     }
 }
 
