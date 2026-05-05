@@ -69,4 +69,20 @@ struct TrustlyWebView: UIViewRepresentable {
     func updateUIView(_ uiView: UIViewType, context: Context) {
         uiView.subviews.compactMap { $0 as? WKWebView }.first?.frame = preferredFrame
     }
+
+    /// Breaks the WKWebView ↔ WKScriptMessageHandler retain cycle inside `TrustlyIosSdk`.
+    ///
+    /// `TrustlyWKScriptHandler` holds a strong reference to its `WKWebView`, while the
+    /// `WKWebView`'s `userContentController` holds a strong reference to the handler.
+    /// The Trustly SDK never tears the cycle down, so each `TrustlyWKWebView` we create
+    /// leaks one `WKWebView` + one `TrustlyWKScriptHandler`. Removing the handler from
+    /// the user content controller here drops one edge of the cycle so both can deinit.
+    static func dismantleUIView(_ uiView: UIView, coordinator: ()) {
+        uiView.subviews
+            .compactMap { $0 as? WKWebView }
+            .first?
+            .configuration
+            .userContentController
+            .removeAllScriptMessageHandlers()
+    }
 }
